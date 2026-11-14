@@ -1,0 +1,41 @@
+# Truth for the fixture traces only (see make_fixtures.py). Not a game ground truth.
+schema: rulelens.ir/1
+game: g1_mini
+rules:
+  - id: T-mini-01
+    kind: causal
+    trigger: {event: contact_enter, a: Player, b: Coin}
+    effects:
+      - {event: destroy, target: b}
+      - {event: attr_change, target: World, attr: score, op: add, value: 10}
+  - id: T-mini-02
+    kind: causal
+    trigger: {event: contact_enter, a: Player, b: BigCoin}
+    effects:
+      - {event: destroy, target: b}
+      - {event: attr_change, target: World, attr: score, op: add, value: 50}
+  - id: T-mini-03
+    kind: causal
+    trigger: {event: attr_reaches, entity: World, attr: timer, value: 0}
+    effects:
+      - {event: attr_change, target: World, attr: gameState, op: set, value: GameOver}
+  - id: T-mini-04
+    kind: invariant
+    entity: World
+    attr: score
+    invariant: {template: range, min: 0}
+  - id: T-mini-05
+    kind: invariant
+    entity: World
+    attr: score
+    invariant: {template: modulo, k: 10}
+  - id: T-mini-06
+    kind: invariant
+    entity: World
+    attr: timer
+    invariant: {template: range, min: 0, max: 8}
+  - id: T-mini-07
+    kind: invariant
+    entity: World
+    attr: score
+    invariant: {template: monotonic, direction: non_decreasing}

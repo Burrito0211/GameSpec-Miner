@@ -1,0 +1,180 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "rulelens.trace/1",
+  "description": "One record of a RuleLens trace (JSON Lines, one record per line). See SPEC.md section 5.2. The record kind is selected by the \"t\" discriminator.",
+  "oneOf": [
+    {"$ref": "#/$defs/header"},
+    {"$ref": "#/$defs/frame"},
+    {"$ref": "#/$defs/input"},
+    {"$ref": "#/$defs/contact"},
+    {"$ref": "#/$defs/spawn"},
+    {"$ref": "#/$defs/destroy"},
+    {"$ref": "#/$defs/footer"}
+  ],
+  "$defs": {
+    "tick": {"type": "integer", "minimum": 0},
+    "entityId": {"type": "integer", "minimum": 0},
+    "typeName": {"type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"},
+    "vec2": {
+      "type": "array",
+      "items": {"type": "number"},
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "attrType": {
+      "description": "int | float | bool | string | vec2 | enum:A|B|C",
+      "type": "string",
+      "pattern": "^(int|float|bool|string|vec2|enum:[A-Za-z_][A-Za-z0-9_]*(\\|[A-Za-z_][A-Za-z0-9_]*)*)$"
+    },
+    "attrValue": {
+      "oneOf": [
+        {"type": "number"},
+        {"type": "boolean"},
+        {"type": "string"},
+        {"$ref": "#/$defs/vec2"}
+      ]
+    },
+    "header": {
+      "type": "object",
+      "required": [
+        "t", "schema", "game", "build", "observability", "tick_hz",
+        "seed", "session", "agent", "entity_types", "static"
+      ],
+      "properties": {
+        "t": {"const": "header"},
+        "schema": {"const": "rulelens.trace/1"},
+        "game": {"type": "string", "minLength": 1},
+        "build": {"type": "string"},
+        "observability": {"enum": ["whitebox", "greybox", "blackbox"]},
+        "tick_hz": {"type": "integer", "minimum": 1},
+        "seed": {"type": "integer"},
+        "session": {"type": "string", "minLength": 1},
+        "agent": {"type": "string", "minLength": 1},
+        "entity_types": {
+          "type": "object",
+          "propertyNames": {"$ref": "#/$defs/typeName"},
+          "additionalProperties": {
+            "type": "object",
+            "required": ["attrs"],
+            "properties": {
+              "attrs": {
+                "type": "object",
+                "propertyNames": {"$ref": "#/$defs/typeName"},
+                "additionalProperties": {"$ref": "#/$defs/attrType"}
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "static": {
+          "type": "object",
+          "required": ["walls"],
+          "properties": {
+            "walls": {
+              "description": "Axis-aligned boxes as [x, y, width, height], (x, y) = min corner.",
+              "type": "array",
+              "items": {
+                "type": "array",
+                "items": {"type": "number"},
+                "minItems": 4,
+                "maxItems": 4
+              }
+            }
+          }
+        }
+      }
+    },
+    "frame": {
+      "type": "object",
+      "required": ["t", "tick", "ents"],
+      "properties": {
+        "t": {"const": "frame"},
+        "tick": {"$ref": "#/$defs/tick"},
+        "ents": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "type", "a"],
+            "properties": {
+              "id": {"$ref": "#/$defs/entityId"},
+              "type": {"$ref": "#/$defs/typeName"},
+              "a": {
+                "type": "object",
+                "additionalProperties": {"$ref": "#/$defs/attrValue"}
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "input": {
+      "type": "object",
+      "required": ["t", "tick", "action", "phase"],
+      "properties": {
+        "t": {"const": "input"},
+        "tick": {"$ref": "#/$defs/tick"},
+        "action": {"type": "string", "minLength": 1},
+        "phase": {"enum": ["down", "up", "value"]},
+        "value": {
+          "oneOf": [
+            {"type": "number"},
+            {"type": "boolean"},
+            {"$ref": "#/$defs/vec2"}
+          ]
+        }
+      },
+      "if": {"properties": {"phase": {"const": "value"}}},
+      "then": {"required": ["value"]},
+      "additionalProperties": false
+    },
+    "contact": {
+      "type": "object",
+      "required": ["t", "tick", "phase", "a", "b"],
+      "properties": {
+        "t": {"const": "contact"},
+        "tick": {"$ref": "#/$defs/tick"},
+        "phase": {"enum": ["enter", "exit"]},
+        "a": {"$ref": "#/$defs/entityId"},
+        "b": {"$ref": "#/$defs/entityId"}
+      },
+      "additionalProperties": false
+    },
+    "spawn": {
+      "type": "object",
+      "required": ["t", "tick", "id", "type"],
+      "properties": {
+        "t": {"const": "spawn"},
+        "tick": {"$ref": "#/$defs/tick"},
+        "id": {"$ref": "#/$defs/entityId"},
+        "type": {"$ref": "#/$defs/typeName"}
+      },
+      "additionalProperties": false
+    },
+    "destroy": {
+      "type": "object",
+      "required": ["t", "tick", "id"],
+      "properties": {
+        "t": {"const": "destroy"},
+        "tick": {"$ref": "#/$defs/tick"},
+        "id": {"$ref": "#/$defs/entityId"}
+      },
+      "additionalProperties": false
+    },
+    "footer": {
+      "type": "object",
+      "required": ["t", "ticks", "end_reason"],
+      "properties": {
+        "t": {"const": "footer"},
+        "ticks": {
+          "description": "Number of frame records in the file.",
+          "type": "integer",
+          "minimum": 0
+        },
+        "end_reason": {"type": "string"}
+      },
+      "additionalProperties": false
+    }
+  }
+}

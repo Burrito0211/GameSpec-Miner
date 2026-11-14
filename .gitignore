@@ -1,0 +1,28 @@
+# generated data (SPEC §3)
+/traces/
+/out/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+build/
+dist/
+
+# Unity
+unity/RuleLensGames/[Ll]ibrary/
+unity/RuleLensGames/[Tt]emp/
+unity/RuleLensGames/[Oo]bj/
+unity/RuleLensGames/[Bb]uild/
+unity/RuleLensGames/[Bb]uilds/
+unity/RuleLensGames/[Ll]ogs/
+unity/RuleLensGames/[Uu]ser[Ss]ettings/
+*.csproj
+*.sln
+.vs/
+.idea/
+.DS_Store

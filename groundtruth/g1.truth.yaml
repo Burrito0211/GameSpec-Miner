@@ -1,0 +1,93 @@
+# Ground truth for G1 — Coin Collector (SPEC §4), written by hand before any
+# inference work on the game. Read only by `rulelens eval`; miners must not open it.
+# Numbers are in game units and seconds; tick_hz = 50.
+schema: rulelens.ir/1
+game: g1_coin
+rules:
+  # --- Rule 1: movement ---------------------------------------------------
+  - id: T-g1-01a
+    kind: input_effect
+    description: The player moves at 5 units/s in 8 directions.
+    params: {action: Move, entity: Player, attr: vel, speed: 5.0, directions: 8}
+
+  - id: T-g1-01b
+    kind: input_effect
+    description: Walls block movement.
+    params: {action: Move, entity: Player, blocked_by: walls}
+
+  # --- Rules 2-3: pickups -------------------------------------------------
+  - id: T-g1-02
+    kind: causal
+    description: Touching a Coin destroys it and adds 10 to the score.
+    trigger: {event: contact_enter, a: Player, b: Coin}
+    effects:
+      - {event: destroy, target: b}
+      - {event: attr_change, target: World, attr: score, op: add, value: 10}
+
+  - id: T-g1-03
+    kind: causal
+    description: Touching a BigCoin destroys it and adds 50 to the score.
+    trigger: {event: contact_enter, a: Player, b: BigCoin}
+    effects:
+      - {event: destroy, target: b}
+      - {event: attr_change, target: World, attr: score, op: add, value: 50}
+
+  # --- Rule 4: coin spawning ----------------------------------------------
+  - id: T-g1-04a
+    kind: timing
+    description: A new Coin spawns every 3 s, with at most 8 Coins alive.
+    params: {template: periodic_spawn, type: Coin, period_s: 3.0, max_alive: 8}
+
+  - id: T-g1-04b
+    kind: stochastic
+    description: Coins spawn at a random free cell.
+    trigger: {event: spawn, type: Coin}
+    params: {attr: pos, distribution: uniform_free_cells}
+
+  # --- Rule 5: timer ------------------------------------------------------
+  - id: T-g1-05
+    kind: timing
+    description: The timer decreases by 1 each second.
+    params: {template: timer, entity: World, attr: timer, delta: -1, period_s: 1.0}
+
+  # --- Rule 6: game over --------------------------------------------------
+  - id: T-g1-06a
+    kind: causal
+    description: When the timer reaches 0 the game is over.
+    trigger: {event: attr_reaches, entity: World, attr: timer, value: 0}
+    effects:
+      - {event: attr_change, target: World, attr: gameState, op: set, value: GameOver}
+
+  - id: T-g1-06b
+    kind: input_effect
+    description: Inputs are ignored after game over.
+    params: {action: Move, entity: Player, blocked_when: "World.gameState == GameOver"}
+
+  # --- Rule 7: invariants -------------------------------------------------
+  - id: T-g1-07a
+    kind: invariant
+    description: score >= 0
+    entity: World
+    attr: score
+    invariant: {template: range, min: 0}
+
+  - id: T-g1-07b
+    kind: invariant
+    description: score % 10 == 0
+    entity: World
+    attr: score
+    invariant: {template: modulo, k: 10}
+
+  - id: T-g1-07c
+    kind: invariant
+    description: 0 <= timer <= 60
+    entity: World
+    attr: timer
+    invariant: {template: range, min: 0, max: 60}
+
+  - id: T-g1-07d
+    kind: invariant
+    description: score never decreases
+    entity: World
+    attr: score
+    invariant: {template: monotonic, direction: non_decreasing}
